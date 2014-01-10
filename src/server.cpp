@@ -10,9 +10,10 @@
 #include <string.h>
 #include <future>
 #include <functional>
-#include "NLPIR.h"
 #include <signal.h>
 #include <iostream>
+#include "ICTCLAS50.h"
+
 using namespace std;
 
 #define SERVER_PORT 9100
@@ -20,6 +21,7 @@ using namespace std;
 #define BUFFER_SIZE 65536
 
 int parse(int socket);
+bool LA_import_user_dict(const char *path, eCodeType type=CODE_TYPE_UTF8);
 int server_socket;
 
 void at_exit(int sig) {
@@ -42,15 +44,15 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
-    if (!NLPIR_Init(".", UTF8_CODE)) {
+    if (!ICTCLAS_Init()) {
         cerr<< "ICTCLAS init Error"<<endl;
         exit(1);
     }
-    NLPIR_SetPOSmap(ICT_POS_MAP_SECOND);
+    // ICTCLAS_SetPOSmap(ICT_POS_MAP_SECOND);
     // import user dict
-    unsigned int count = NLPIR_ImportUserDict("userdict.txt");
+    unsigned int count = ICTCLAS_ImportUserDictFile("userdict.txt", CODE_TYPE_UTF8);
     cout<<"import user dict count: " << count << endl;
-    NLPIR_SaveTheUsrDic();
+    ICTCLAS_SaveTheUsrDic();
 
     // server
     struct sockaddr_in server_addr;
@@ -115,7 +117,7 @@ int main(int argc, char **argv) {
         }
     }
     close(server_socket);
-    NLPIR_Exit();
+    ICTCLAS_Exit();
     return 0;
 }
 
@@ -126,25 +128,31 @@ int parse(int n_socket) {
     char buffer[65000];
     ssize_t len = 0;
     len = read(n_socket, buffer, sizeof(buffer));
-    if (buffer[0] == 'P' && buffer[1] == 'P') {
-	cout << buffer + 4<<endl;
-        const char * rst = NLPIR_ParagraphProcess(buffer + 4, 1);
-        len = write(n_socket, rst, strlen(rst));
-    }
-    else if (buffer[0] == 'K' && buffer[1] == 'W') {
-        len = write(n_socket, buffer, strlen(buffer));
-    }
-    else if (buffer[0] == 'A' && buffer[1] == 'W') {
-        int ret = NLPIR_AddUserWord(buffer + 4);
-        cout << "add word count: " << ret<<endl;
-        NLPIR_SaveTheUsrDic();
-        len = write(n_socket, (char *)&ret, sizeof(ret));
-    }
-    else if (buffer[0] == 'D' && buffer[1] == 'W') {
-        int ret = NLPIR_DelUsrWord(buffer + 4);
-        cout << "del word count: " << ret <<endl;
-        len = write(n_socket, (char *)&ret, sizeof(ret));
+    printf("%s\n", buffer);
+    if (len > 4) {
+        if (buffer[0] == 'P' && buffer[1] == 'P') {
+            char *rst = (char *)malloc(len * 6);
+            len = ICTCLAS_ParagraphProcess(buffer + 4, len - 4, rst, CODE_TYPE_UTF8, 1);
+            len = write(n_socket, rst, strlen(rst));
+        }
+	else if (buffer[0] == 'A' && buffer[1] == 'D') {
+	    printf("reload userdict");
+            LA_import_user_dict("userdict.txt");
+	}
     }
     close(n_socket);
     return 0;
+}
+
+
+
+/********************************************
+ * param:
+ *     path: the dict path
+ */
+bool LA_import_user_dict(const char *path, eCodeType type) {
+    unsigned int count = ICTCLAS_ImportUserDictFile("userdict.txt", type);
+    count = ICTCLAS_SaveTheUsrDic();
+    printf("%d\n", count);
+    return true;
 }

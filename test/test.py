@@ -8,10 +8,10 @@ import socket
 if __name__ == '__main__':
     if len(sys.argv) < 2:
         exit(1)
-    if sys.argv[1].upper() in {'PP', 'KW', 'AW', 'DW'}:
+    if sys.argv[1].upper() in {'PP', 'KW', 'AW', 'DW', 'AD'}:
         try:
             action = sys.argv[1].upper()
-            words = sys.argv[2].replace(' ', '\t')
+            words = sys.argv[2].replace('#', '\t')
             # words = sys.argv[2]
             print (action, ' ', words, len('\t'), '\t')
             if len(words) <= 0:
