@@ -20,6 +20,8 @@ using namespace std;
 #define LISTEN_QUEUE 10000
 #define BUFFER_SIZE 65536
 
+#define USER_DICT "../../dict/userdict.txt"
+
 int parse(int socket);
 bool LA_import_user_dict(const char *path, eCodeType type=CODE_TYPE_UTF8);
 int server_socket;
@@ -50,9 +52,7 @@ int main(int argc, char **argv) {
     }
     // ICTCLAS_SetPOSmap(ICT_POS_MAP_SECOND);
     // import user dict
-    unsigned int count = ICTCLAS_ImportUserDictFile("userdict.txt", CODE_TYPE_UTF8);
-    cout<<"import user dict count: " << count << endl;
-    ICTCLAS_SaveTheUsrDic();
+    LA_import_user_dict(USER_DICT, CODE_TYPE_UTF8);
 
     // server
     struct sockaddr_in server_addr;
@@ -128,17 +128,15 @@ int parse(int n_socket) {
     char buffer[65000];
     ssize_t len = 0;
     len = read(n_socket, buffer, sizeof(buffer));
-    printf("%s\n", buffer);
-    if (len > 4) {
+    if (len >= 4) {
         if (buffer[0] == 'P' && buffer[1] == 'P') {
             char *rst = (char *)malloc(len * 6);
-            len = ICTCLAS_ParagraphProcess(buffer + 4, len - 4, rst, CODE_TYPE_UTF8, 1);
+            len = ICTCLAS_ParagraphProcess(buffer + 4, len - 4, rst, CODE_TYPE_UTF8, 0);
             len = write(n_socket, rst, strlen(rst));
         }
-	else if (buffer[0] == 'A' && buffer[1] == 'D') {
-	    printf("reload userdict");
-            LA_import_user_dict("userdict.txt");
-	}
+	    else if (buffer[0] == 'A' && buffer[1] == 'W') {
+            LA_import_user_dict(USER_DICT);
+	    }
     }
     close(n_socket);
     return 0;
@@ -151,8 +149,8 @@ int parse(int n_socket) {
  *     path: the dict path
  */
 bool LA_import_user_dict(const char *path, eCodeType type) {
-    unsigned int count = ICTCLAS_ImportUserDictFile("userdict.txt", type);
-    count = ICTCLAS_SaveTheUsrDic();
-    printf("%d\n", count);
+    unsigned int count = ICTCLAS_ImportUserDictFile(USER_DICT, type);
+    ICTCLAS_SaveTheUsrDic();
+    printf("import count: %d\n", count);
     return true;
 }
