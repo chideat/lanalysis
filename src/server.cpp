@@ -111,8 +111,9 @@ int main(int argc, char **argv) {
                 }
             }
             else {
-                auto instance = async(launch::async, parse, n_socket);
-                instance.get();
+                parse(n_socket);
+                // auto instance = async(launch::async, parse, n_socket);
+                // instance.get();
             }
         }
     }
@@ -131,7 +132,7 @@ int parse(int n_socket) {
     if (len >= 4) {
         if (buffer[0] == 'P' && buffer[1] == 'P') {
             char *rst = (char *)malloc(len * 6);
-            len = ICTCLAS_ParagraphProcess(buffer + 4, len - 4, rst, CODE_TYPE_UTF8, 0);
+            len = ICTCLAS_ParagraphProcess(buffer + 4, len - 4, rst, CODE_TYPE_UTF8, 1);
             len = write(n_socket, rst, strlen(rst));
         }
 	    else if (buffer[0] == 'A' && buffer[1] == 'W') {
